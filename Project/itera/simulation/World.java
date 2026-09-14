@@ -6,10 +6,20 @@ import itera.model.Human;
 import itera.model.Resource;
 import itera.model.SafePoint;
 import itera.model.Zombie;
-
 import java.util.ArrayList;
 
 public class World {
+
+    // All in-world timers advance with movement, independent of wall-clock time.
+    private long simulationTime = System.currentTimeMillis();
+
+    public long getTime() { return simulationTime; }
+
+    public void advanceTime(long milliseconds) {
+        if (milliseconds < 0) throw new IllegalArgumentException("Time cannot go backwards");
+        simulationTime += milliseconds;
+    }
+
 
     private ArrayList<Character> characters = new ArrayList<>();
 
@@ -23,11 +33,13 @@ public class World {
 
     public void addCharacter(Character character) {
 
+        character.setTimeSource(this::getTime);
         characters.add(character);
     }
 
     public void addResource(Resource resource) {
 
+        resource.setTimeSource(this::getTime);
         resources.add(resource);
     }
 
