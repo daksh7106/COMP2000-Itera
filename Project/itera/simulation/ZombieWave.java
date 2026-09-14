@@ -6,7 +6,6 @@ import itera.model.Runner;
 import itera.model.Stalker;
 import itera.model.Vector2D;
 import itera.model.Zombie;
-
 import java.util.ArrayList;
 import java.util.Random;
 
