@@ -6,12 +6,12 @@ import java.util.ArrayList;
 
 public class Bloater extends Zombie {
     private double blastRadius = 60;
-    private int blastDamage = 60;
+    private int blastDamage = 75;
 
     public Bloater(int x, int y) {
         super(x, y);
         health = 150;
-        speed = 0.8;
+        speed = 1.0;
         size = 22;
     }
 
@@ -25,7 +25,7 @@ public class Bloater extends Zombie {
                 continue;
             }
 
-            if (human.isInSafePoint()) {
+            if (human.isSheltered()) {
                 continue;
             }
 
@@ -54,7 +54,7 @@ public class Bloater extends Zombie {
                 continue;
             }
 
-            if (human.isInSafePoint()) {
+            if (human.isSheltered()) {
                 continue;
             }
 
@@ -73,6 +73,9 @@ public class Bloater extends Zombie {
 
         return killedHumans;
     }
+
+    @Override
+    public int getMaxHealth() { return 150; }
 
     public double getBlastRadius() {
         return blastRadius;

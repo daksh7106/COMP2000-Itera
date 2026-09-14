@@ -9,9 +9,8 @@ public class PoliceStation extends Building {
 
         super(10, x, y, 180, 180, "POLICE STATION");
 
-        Weapon weapon = new Weapon(10, 25, 20);
-
-        stock.add(weapon);
+        for (int i = 0; i < 6; i++)
+            stock.add(new Weapon(5, 50, 5, x + 40 + (i % 3) * 35, y + 75 + (i / 3) * 40));
     }
 
     /**

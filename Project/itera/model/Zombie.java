@@ -7,15 +7,23 @@ import java.util.ArrayList;
 
 public class Zombie extends Character {
 
+    /** Standard police-station bullets deal 50 health damage. */
+    public void receiveGunshot() {
+        if (isAlive()) takeDamage(50);
+    }
+
+    private java.util.List<Building> buildings = java.util.List.of();
+    public void setBuildings(java.util.List<Building> buildings) { this.buildings = buildings; }
+
     protected double detectionRange = 500;
 
-    protected static final int DAMAGE = 20;
+    protected static final int DAMAGE = 25;
 
     protected static final double ATTACK_DISTANCE = 20;
 
     public Zombie(int x, int y) {
 
-        super(100, 1.5, x, y, 18);
+        super(100, 1.875, x, y, 18);
     }
 
     /**
@@ -40,7 +48,7 @@ public class Zombie extends Character {
             return null;
         }
 
-        if (target.isInSafePoint()) {
+        if (target.isSheltered()) {
             return null;
         }
 
@@ -72,7 +80,8 @@ public class Zombie extends Character {
 
         double nextY = position.getY();
 
-        if (safePoint.wouldZombieEnter(nextX, nextY, size)) {
+        if (safePoint.wouldZombieEnter(nextX, nextY, size)
+            || buildings.stream().anyMatch(b -> b.overlaps(nextX, nextY, size))) {
 
             position.setX(previousX);
 
@@ -98,7 +107,7 @@ public class Zombie extends Character {
                 continue;
             }
 
-            if (human.isInSafePoint()) {
+            if (human.isSheltered()) {
                 continue;
             }
 
@@ -170,7 +179,22 @@ public class Zombie extends Character {
         drawTypeLabel(g, "Z");
     }
 
+    public int getMaxHealth() { return 100; }
+
+    protected void drawHealthBar(Graphics g) {
+        int width = Math.max(24, size);
+        int barX = getX() + (size - width) / 2;
+        int barY = getY() - 9;
+        int remaining = (int) Math.round(width * Math.max(0, Math.min(1.0,
+            health / (double) getMaxHealth())));
+        g.setColor(Color.RED);
+        g.fillRect(barX, barY, width, 4);
+        g.setColor(Color.GREEN);
+        g.fillRect(barX, barY, remaining, 4);
+    }
+
     protected void drawTypeLabel(Graphics g, String label) {
+        drawHealthBar(g);
 
         g.setColor(Color.BLACK);
 

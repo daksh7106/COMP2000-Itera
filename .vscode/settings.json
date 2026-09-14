@@ -4,7 +4,7 @@
     ],
     "java.project.outputPath": "bin",
     "code-runner.executorMap": {
-        "java": "cd \"$workspaceRoot\" && javac -d bin Project/itera/model/*.java Project/itera/simulation/*.java Project/itera/ui/*.java && java -cp bin itera.ui.Test"
+        "java": "cd \"$workspaceRoot\" && javac -d bin Project/itera/model/*.java Project/itera/simulation/*.java Project/itera/ui/*.java && java -cp bin itera.ui.Main"
     },
     "code-runner.runInTerminal": true
 }

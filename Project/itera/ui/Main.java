@@ -5,12 +5,9 @@ import itera.model.Building;
 import itera.model.Character;
 import itera.model.Civilian;
 import itera.model.ConvenienceStore;
-import itera.model.Food;
 import itera.model.Hospital;
 import itera.model.Human;
 import itera.model.Medic;
-import itera.model.Medicine;
-import itera.model.MutantBoss;
 import itera.model.PoliceStation;
 import itera.model.Resource;
 import itera.model.Runner;
@@ -18,11 +15,9 @@ import itera.model.SafePoint;
 import itera.model.Soldier;
 import itera.model.Stalker;
 import itera.model.Vector2D;
-import itera.model.Weapon;
 import itera.model.Zombie;
 import itera.simulation.World;
 import itera.simulation.ZombieWave;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -31,7 +26,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.Random;
-
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -39,7 +33,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 @SuppressWarnings({"serial", "this-escape"})
-public class Test extends JPanel {
+public class Main extends JPanel {
 
     private static final int WORLD_WIDTH = 1200;
     private static final int WORLD_HEIGHT = 800;
@@ -66,15 +60,15 @@ public class Test extends JPanel {
      */
     private static final long WAVE_INTERVAL = 15000;
 
-    private static final int BASE_ZOMBIES_PER_WAVE = 3;
+    private static final int BASE_ZOMBIES_PER_WAVE = 9;
 
-    private static final int ZOMBIES_ADDED_PER_WAVE = 1;
+    private static final int ZOMBIES_ADDED_PER_WAVE = 3;
 
     private long lastWaveTime;
 
     private int waveNumber = 1;
 
-    public Test() {
+    public Main() {
 
         setPreferredSize(
             new Dimension(
@@ -136,82 +130,25 @@ public class Test extends JPanel {
          * RESOURCES
          */
 
-        Medicine medicine1 =
-            new Medicine(
-                1,
-                20,
-                WORLD_WIDTH - 240,
-                220
-            );
-
-        Medicine medicine2 =
-            new Medicine(
-                1,
-                20,
-                WORLD_WIDTH - 200,
-                220
-            );
-
-        Weapon weapon1 =
-            new Weapon(
-                5,
-                25,
-                20,
-                200,
-                WORLD_HEIGHT - 310
-            );
-
-        Weapon weapon2 =
-            new Weapon(
-                5,
-                25,
-                20,
-                240,
-                WORLD_HEIGHT - 310
-            );
-
-        Food food1 =
-            new Food(
-                1,
-                20,
-                WORLD_WIDTH - 240,
-                WORLD_HEIGHT - 310
-            );
-
-        Food food2 =
-            new Food(
-                1,
-                20,
-                WORLD_WIDTH - 200,
-                WORLD_HEIGHT - 310
-            );
-
-        resources.add(medicine1);
-        resources.add(medicine2);
-        resources.add(weapon1);
-        resources.add(weapon2);
-        resources.add(food1);
-        resources.add(food2);
-
-        for (Resource resource : resources) {
-
-            world.addResource(resource);
+        for (Building building : buildings) {
+            resources.addAll(building.getResources());
         }
+        for (Resource resource : resources) world.addResource(resource);
 
         /*
          * HUMANS
          *
-         * Total = 40
+         * Total = 20
          *
-         * 30 Civilians
-         * 6 Soldiers
-         * 4 Medics
+         * 6 Civilians
+         * 8 Soldiers
+         * 6 Medics
          */
 
         /*
          * Civilians
          */
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 6; i++) {
 
             Vector2D spawn =
                 randomHumanPosition();
@@ -227,7 +164,7 @@ public class Test extends JPanel {
         /*
          * Soldiers
          */
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 8; i++) {
 
             Vector2D spawn =
                 randomHumanPosition();
@@ -243,7 +180,7 @@ public class Test extends JPanel {
         /*
          * Medics
          */
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 6; i++) {
 
             Vector2D spawn =
                 randomHumanPosition();
@@ -260,33 +197,19 @@ public class Test extends JPanel {
          * INITIAL ZOMBIES
          */
 
-        world.addCharacter(
-            new Zombie(
-                WORLD_WIDTH / 2,
-                WORLD_HEIGHT / 2
-            )
-        );
-
-        world.addCharacter(
-            new Runner(
-                WORLD_WIDTH / 2 + 70,
-                WORLD_HEIGHT / 2
-            )
-        );
-
-        world.addCharacter(
-            new Stalker(
-                WORLD_WIDTH / 2,
-                WORLD_HEIGHT / 2 + 70
-            )
-        );
-
-        world.addCharacter(
-            new Bloater(
-                WORLD_WIDTH / 2 + 70,
-                WORLD_HEIGHT / 2 + 70
-            )
-        );
+        // Ten zombies spread across the centre: 3 regular, 3 runners,
+        // 2 stalkers and 2 bloaters. Bosses still begin on boss waves.
+        for (int i = 0; i < 10; i++) {
+            int x = WORLD_WIDTH / 2 - 140 + (i % 5) * 70;
+            int y = WORLD_HEIGHT / 2 + (i / 5) * 70;
+            Zombie zombie = switch (i % 4) {
+                case 1 -> new Runner(x, y);
+                case 2 -> new Stalker(x, y);
+                case 3 -> new Bloater(x, y);
+                default -> new Zombie(x, y);
+            };
+            world.addCharacter(zombie);
+        }
 
         /*
          * Fast-forward control.
@@ -349,7 +272,7 @@ public class Test extends JPanel {
              */
             for (Building building : buildings) {
 
-                if (building.contains(x, y)) {
+                if (building.overlaps(x, y, 15)) {
 
                     invalid = true;
 
@@ -369,7 +292,7 @@ public class Test extends JPanel {
     private void updateTimedWaves() {
 
         long now =
-            System.currentTimeMillis();
+            world.getTime();
 
         if (
             now - lastWaveTime
@@ -384,23 +307,7 @@ public class Test extends JPanel {
          */
         waveNumber++;
 
-        /*
-         * Boss zombies are only allowed
-         * on waves:
-         *
-         * 5, 10, 15, 20...
-         *
-         * If a boss survives a boss wave,
-         * remove it when the next normal
-         * wave begins.
-         */
-        if (waveNumber % 5 != 0) {
-
-            world.getCharacters().removeIf(
-                character ->
-                    character instanceof MutantBoss
-            );
-        }
+        // Surviving zombies, including bosses, remain when a wave is added.
 
         /*
          * Check whether this is
@@ -476,8 +383,24 @@ public class Test extends JPanel {
         world.addWave(wave);
 
         world.spawnWave(wave);
+        addHumanReinforcements();
 
         lastWaveTime = now;
+    }
+
+    /** Each new wave brings two humans of each role, including boss waves. */
+    private void addHumanReinforcements() {
+        for (int role = 0; role < 6; role++) {
+            Vector2D spawn = randomHumanPosition();
+            int x = (int) spawn.getX();
+            int y = (int) spawn.getY();
+            Human human = switch (role % 3) {
+                case 0 -> new Medic(x, y);
+                case 1 -> new Civilian(x, y);
+                default -> new Soldier(x, y);
+            };
+            world.addCharacter(human);
+        }
     }
 
     /*
@@ -500,7 +423,15 @@ public class Test extends JPanel {
         /*
          * Update waves.
          */
+        // One movement step represents 30 simulation milliseconds. The 1x/2x/5x
+        // controls run these steps every 30/15/6 real milliseconds respectively.
+        world.advanceTime(30);
         updateTimedWaves();
+
+        long now = world.getTime();
+        for (Resource resource : resources) {
+            resource.updateRespawn(now);
+        }
 
         var humans =
             world.getHumans();
@@ -513,28 +444,13 @@ public class Test extends JPanel {
          */
         for (Human human : humans) {
 
+            human.setEnvironment(buildings, humans);
             human.update(
                 getWidth(),
                 getHeight(),
                 zombies,
                 safePoint
             );
-
-            /*
-             * Resource collection.
-             */
-            for (Resource resource : resources) {
-
-                if (
-                    !resource.isCollected()
-                        && resource.isNear(human)
-                ) {
-
-                    human.addResource(resource);
-
-                    resource.collect();
-                }
-            }
 
             /*
              * Building interaction.
@@ -564,6 +480,8 @@ public class Test extends JPanel {
          * UPDATE ZOMBIES
          */
         for (Zombie zombie : zombies) {
+
+            zombie.setBuildings(buildings);
 
             /*
              * Bloater explosion.
@@ -769,7 +687,7 @@ public class Test extends JPanel {
     public void startSimulation() {
 
         lastWaveTime =
-            System.currentTimeMillis();
+            world.getTime();
 
         timer.start();
     }
@@ -794,7 +712,7 @@ public class Test extends JPanel {
         }
 
         long elapsed =
-            System.currentTimeMillis()
+            world.getTime()
                 - lastWaveTime;
 
         long remaining =
@@ -1061,8 +979,8 @@ public class Test extends JPanel {
                 "Zombie Survival Simulation"
             );
 
-        Test simulation =
-            new Test();
+        Main simulation =
+            new Main();
 
         frame.setLayout(
             new BorderLayout()

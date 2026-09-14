@@ -9,9 +9,8 @@ public class ConvenienceStore extends Building {
 
         super(15, x, y, 180, 180, "CONVENIENCE STORE");
 
-        Food food = new Food(10, 20);
-
-        stock.add(food);
+        for (int i = 0; i < 9; i++)
+            stock.add(new Food(1, 20, x + 40 + (i % 3) * 35, y + 65 + (i / 3) * 30));
     }
 
     /**

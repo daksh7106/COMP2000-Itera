@@ -6,12 +6,16 @@ import java.awt.Graphics;
 public class Stalker extends Zombie {
     private int stealth = 100;
 
-    private static final int AMBUSH_DAMAGE = 30;
+    private static final int AMBUSH_DAMAGE = 38;
 
     public Stalker(int x, int y) {
         super(x, y);
-        speed = 1.2;
+        health = 150;
+        speed = 1.5;
     }
+
+    @Override
+    public int getMaxHealth() { return 150; }
 
     public void ambush(Character target) {
         if (target instanceof Human human) {

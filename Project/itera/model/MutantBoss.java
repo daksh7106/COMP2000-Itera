@@ -7,9 +7,9 @@ import java.awt.Graphics;
 public class MutantBoss extends Zombie {
 
     // Boss-specific statistics
-    private static final int BOSS_HEALTH = 500;
-    private static final int BOSS_DAMAGE = 40;
-    private static final double BOSS_SPEED = 2.2;
+    private static final int BOSS_HEALTH = 200;
+    private static final int BOSS_DAMAGE = 50;
+    private static final double BOSS_SPEED = 2.75;
     private static final int BOSS_SIZE = 40;
     private static final double BOSS_DETECTION_RANGE = 700;
 
@@ -51,6 +51,8 @@ public class MutantBoss extends Zombie {
         g.setColor(new Color(100, 0, 100));
         g.fillOval(getX(), getY(), size, size);
 
+        drawHealthBar(g);
+
         // Display BOSS underneath it
         g.setColor(Color.BLACK);
         g.setFont(new Font("Arial", Font.BOLD, 12));
@@ -69,6 +71,9 @@ public class MutantBoss extends Zombie {
     /**
      * Returns the boss's maximum health.
      */
+    @Override
+    public int getMaxHealth() { return BOSS_HEALTH; }
+
     public int getMaxBossHealth() {
 
         return BOSS_HEALTH;

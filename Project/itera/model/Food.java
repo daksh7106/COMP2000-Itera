@@ -22,13 +22,20 @@ public class Food extends Resource {
     }
 
     @Override
+    public Food inventoryCopy() {
+        return new Food(quantity, nutrition);
+    }
+
+    @Override
     public void use(Character target) {
 
         if (quantity <= 0) {
             return;
         }
 
-        if (target instanceof Human human) {
+        if (target instanceof Human human && human.isAlive() && human.health < 100) {
+
+            human.health = Math.min(100, human.health + nutrition);
 
             human.stamina += nutrition;
 
