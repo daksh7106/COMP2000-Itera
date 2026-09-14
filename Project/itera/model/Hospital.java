@@ -9,7 +9,8 @@ public class Hospital extends Building {
 
         super(10, x, y, 180, 180, "HOSPITAL");
 
-        stock.add(new Medicine(5, 20));
+        for (int i = 0; i < 6; i++)
+            stock.add(new Medicine(3, 20, x + 40 + (i % 3) * 35, y + 75 + (i / 3) * 40));
     }
 
     public void treat(Character character) {
