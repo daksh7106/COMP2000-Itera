@@ -22,9 +22,14 @@ public class Medicine extends Resource {
     }
 
     @Override
+    public Medicine inventoryCopy() {
+        return new Medicine(quantity, healAmount);
+    }
+
+    @Override
     public void use(Character target) {
 
-        if (quantity <= 0) {
+        if (quantity <= 0 || !(target instanceof Human) || !target.isAlive() || target.health >= 100) {
             return;
         }
 
