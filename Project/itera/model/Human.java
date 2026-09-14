@@ -8,6 +8,83 @@ import java.util.Random;
 
 public class Human extends Character {
 
+    protected java.util.List<Building> buildings = java.util.List.of();
+    protected java.util.List<Human> companions = java.util.List.of();
+    private Building visitingBuilding;
+
+    public void setEnvironment(java.util.List<Building> buildings, java.util.List<Human> companions) {
+        this.buildings = buildings;
+        this.companions = companions;
+    }
+
+    public boolean isSheltered() {
+        return insideSafePoint || buildings.stream().anyMatch(b -> b.isInside(this));
+    }
+
+    public boolean canCollect(Resource resource) {
+        return isAlive() && !resource.isCollected()
+            && (!(resource instanceof Weapon) || this instanceof Soldier soldier && !soldier.isArmed())
+            && (!(resource instanceof Medicine) || this instanceof Medic medic && medic.getMedKits() == 0)
+            && (!(resource instanceof Food) || health < 100);
+    }
+
+    protected boolean clearShot(Character target) {
+        for (Building building : buildings) {
+            if (new java.awt.geom.Rectangle2D.Double(building.getX(), building.getY(),
+                    building.getWidth(), building.getHeight()).intersectsLine(
+                    getX() + size / 2.0, getY() + size / 2.0,
+                    target.getX() + target.getSize() / 2.0, target.getY() + target.getSize() / 2.0)) return false;
+        }
+        return true;
+    }
+
+    private Resource wantedResource(Building building) {
+        for (Resource resource : building.getResources())
+            if (canCollect(resource)) return resource;
+        return null;
+    }
+
+    protected boolean seekResources() {
+        // Recover a building entered while roaming, even when no supplies are needed.
+        for (Building building : buildings) {
+            if (building.canEnter(this) && building.overlaps(getX(), getY(), size)) {
+                visitingBuilding = building;
+                break;
+            }
+        }
+        if (visitingBuilding == null) {
+            for (Building building : buildings) {
+                if (building.canEnter(this) && wantedResource(building) != null) {
+                    visitingBuilding = building;
+                    break;
+                }
+            }
+        }
+        if (visitingBuilding == null) return false;
+        Resource resource = wantedResource(visitingBuilding);
+        if (resource == null && !visitingBuilding.overlaps(getX(), getY(), size)) {
+            visitingBuilding = null;
+            return false;
+        }
+        Vector2D destination = visitingBuilding.destination(this, resource);
+        double vx = destination.getX() - position.getX();
+        double vy = destination.getY() - position.getY();
+        double length = Math.hypot(vx, vy);
+        dx = length == 0 ? 0 : vx / length * Math.min(speed, length);
+        dy = length == 0 ? 0 : vy / length * Math.min(speed, length);
+        return true;
+    }
+
+    protected boolean pursueTarget(ArrayList<Zombie> zombies) { return false; }
+
+    protected void moveTowards(Vector2D destination) {
+        double vx = destination.getX() - position.getX();
+        double vy = destination.getY() - position.getY();
+        double length = Math.hypot(vx, vy);
+        dx = length == 0 ? 0 : vx / length * Math.min(speed, length);
+        dy = length == 0 ? 0 : vy / length * Math.min(speed, length);
+    }
+
     protected int stamina = 100;
 
     protected static final int MAX_STAMINA = 100;
@@ -53,12 +130,17 @@ public class Human extends Character {
     }
 
     public void addResource(Resource resource) {
-        inventory.add(resource);
+        if (!canCollect(resource)) return;
+        inventory.removeIf(r -> r.getQuantity() <= 0);
+        Resource carried = resource.inventoryCopy();
+        carried.setTimeSource(timeSource);
+        inventory.add(carried);
+        if (carried instanceof Food) carried.use(this);
     }
 
     public void interact(Object object) {
 
-        if (object instanceof Resource resource && !resource.isCollected()) {
+        if (object instanceof Resource resource && canCollect(resource)) {
 
             addResource(resource);
 
@@ -94,7 +176,9 @@ public class Human extends Character {
             return;
         }
 
-        if (health <= 20) {
+        if ((isSheltered() || health > 20) && seekResources()) {
+            recoverStamina();
+        } else if (health <= 20) {
 
             moveTowardsSafePoint(safePoint);
 
@@ -113,11 +197,13 @@ public class Human extends Character {
                 dx = 0;
                 dy = 0;
 
-                lastHealTime = System.currentTimeMillis();
+                lastHealTime = now();
 
                 return;
             }
 
+        } else if (pursueTarget(zombies)) {
+            recoverStamina();
         } else {
 
             Zombie nearestZombie = findNearestZombie(zombies);
@@ -149,7 +235,9 @@ public class Human extends Character {
 
         double nextY = position.getY() + dy;
 
-        if (safePoint.blocksHumanMovement(position.getX(), position.getY(), nextX, nextY, size, health <= 20)) {
+        boolean buildingBlocked = buildings.stream().anyMatch(b ->
+            b.blocksMovement(nextX, nextY, size, b.canEnter(this)));
+        if (buildingBlocked || safePoint.blocksHumanMovement(position.getX(), position.getY(), nextX, nextY, size, health <= 20)) {
 
             chooseRandomDirection();
 
@@ -328,11 +416,11 @@ public class Human extends Character {
      */
     public boolean receiveZombieHit(int damage) {
 
-        if (insideSafePoint) {
+        if (isSheltered()) {
             return false;
         }
 
-        long now = System.currentTimeMillis();
+        long now = now();
 
         if (now - lastDamageTime < DAMAGE_COOLDOWN) {
 
@@ -348,7 +436,7 @@ public class Human extends Character {
 
     protected void healInsideSafePoint() {
 
-        long now = System.currentTimeMillis();
+        long now = now();
 
         if (now - lastHealTime >= HEAL_INTERVAL) {
 
