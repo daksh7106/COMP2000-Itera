@@ -4,6 +4,15 @@ import java.awt.Graphics;
 
 public abstract class Character {
 
+    protected java.util.function.LongSupplier timeSource = System::currentTimeMillis;
+
+    public void setTimeSource(java.util.function.LongSupplier timeSource) {
+        this.timeSource = java.util.Objects.requireNonNull(timeSource);
+    }
+
+    protected long now() { return timeSource.getAsLong(); }
+
+
     protected int health;
     protected double speed;
     protected Vector2D position;
