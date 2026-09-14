@@ -18,6 +18,7 @@ import itera.model.Vector2D;
 import itera.model.Zombie;
 import itera.simulation.World;
 import itera.simulation.ZombieWave;
+import itera.simulation.SimulationSettings;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -46,6 +47,7 @@ public class Main extends JPanel {
     private final World world;
     private final SafePoint safePoint;
     private final FastForward fastForward;
+    private final SimulationSettings settings;
 
     private final ArrayList<Building> buildings =
         new ArrayList<>();
@@ -69,6 +71,12 @@ public class Main extends JPanel {
     private int waveNumber = 1;
 
     public Main() {
+        this(createDefaultSettings());
+    }
+
+    public Main(SimulationSettings settings) {
+
+        this.settings = settings;
 
         setPreferredSize(
             new Dimension(
@@ -135,73 +143,25 @@ public class Main extends JPanel {
         }
         for (Resource resource : resources) world.addResource(resource);
 
-        /*
-         * HUMANS
-         *
-         * Total = 20
-         *
-         * 6 Civilians
-         * 8 Soldiers
-         * 6 Medics
-         */
-
-        /*
-         * Civilians
-         */
-        for (int i = 0; i < 6; i++) {
-
-            Vector2D spawn =
-                randomHumanPosition();
-
-            world.addCharacter(
-                new Civilian(
-                    (int) spawn.getX(),
-                    (int) spawn.getY()
-                )
-            );
-        }
-
-        /*
-         * Soldiers
-         */
-        for (int i = 0; i < 8; i++) {
-
-            Vector2D spawn =
-                randomHumanPosition();
-
-            world.addCharacter(
-                new Soldier(
-                    (int) spawn.getX(),
-                    (int) spawn.getY()
-                )
-            );
-        }
-
-        /*
-         * Medics
-         */
-        for (int i = 0; i < 6; i++) {
-
-            Vector2D spawn =
-                randomHumanPosition();
-
-            world.addCharacter(
-                new Medic(
-                    (int) spawn.getX(),
-                    (int) spawn.getY()
-                )
-            );
-        }
+        addStartingHumans();
 
         /*
          * INITIAL ZOMBIES
          */
 
-        // Ten zombies spread across the centre: 3 regular, 3 runners,
-        // 2 stalkers and 2 bloaters. Bosses still begin on boss waves.
-        for (int i = 0; i < 10; i++) {
-            int x = WORLD_WIDTH / 2 - 140 + (i % 5) * 70;
-            int y = WORLD_HEIGHT / 2 + (i / 5) * 70;
+        // Zombies spread across the centre. Bosses still begin on boss waves.
+        int zombieColumns = Math.min(
+            10,
+            Math.max(5, (int) Math.ceil(Math.sqrt(settings.getStartingZombies())))
+        );
+        int zombieRows = (int) Math.ceil(
+            settings.getStartingZombies() / (double) zombieColumns
+        );
+        for (int i = 0; i < settings.getStartingZombies(); i++) {
+            int x = WORLD_WIDTH / 2 - (zombieColumns - 1) * 35
+                + (i % zombieColumns) * 70;
+            int y = WORLD_HEIGHT / 2 - (zombieRows - 1) * 35
+                + (i / zombieColumns) * 70;
             Zombie zombie = switch (i % 4) {
                 case 1 -> new Runner(x, y);
                 case 2 -> new Stalker(x, y);
@@ -224,15 +184,55 @@ public class Main extends JPanel {
                 30,
                 e -> {
 
-                    timer.setDelay(
-                        fastForward.getDelay()
-                    );
-
-                    updateSimulation();
-
-                    repaint();
+                    try {
+                        timer.setDelay(
+                            fastForward.getDelay()
+                        );
+                        updateSimulation();
+                        repaint();
+                    } catch (RuntimeException exception) {
+                        timer.stop();
+                        JOptionPane.showMessageDialog(
+                            this,
+                            "The simulation stopped because of an unexpected error:\n"
+                                + exception.getMessage(),
+                            "Simulation Error",
+                            JOptionPane.ERROR_MESSAGE
+                        );
+                    }
                 }
             );
+    }
+
+    /**
+     * Uses the original 30/40/30 civilian/soldier/medic balance while scaling
+     * each role to the population selected in the setup screen.
+     */
+    private void addStartingHumans() {
+        int civilianCount = settings.getStartingHumans() * 3 / 10;
+        int medicCount = settings.getStartingHumans() * 3 / 10;
+        int soldierCount = settings.getStartingHumans()
+            - civilianCount - medicCount;
+        for (int i = 0; i < settings.getStartingHumans(); i++) {
+            Vector2D spawn = randomHumanPosition();
+            int x = (int) spawn.getX();
+            int y = (int) spawn.getY();
+            Human human;
+            if (i < civilianCount) {
+                human = new Civilian(x, y);
+            } else if (i < civilianCount + soldierCount) {
+                human = new Soldier(x, y);
+            } else {
+                human = new Medic(x, y);
+            }
+            world.addCharacter(human);
+        }
+    }
+
+    private static SimulationSettings createDefaultSettings() {
+        return new SimulationSettings(
+            SimulationSettings.DEFAULT_HUMANS,
+            SimulationSettings.DEFAULT_ZOMBIES);
     }
 
     /*
@@ -668,7 +668,17 @@ public class Main extends JPanel {
              * Start a completely
              * new simulation.
              */
-            createAndStartSimulation();
+            try {
+                createAndStartSimulation();
+            } catch (RuntimeException exception) {
+                JOptionPane.showMessageDialog(
+                    null,
+                    "The replacement simulation could not start:\n"
+                        + exception.getMessage(),
+                    "Simulation Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            }
 
         } else {
 
@@ -974,13 +984,18 @@ public class Main extends JPanel {
      */
     private static void createAndStartSimulation() {
 
+        SimulationSettings settings = SimulationSettingsDialog.showDialog(null);
+        if (settings == null) {
+            return;
+        }
+
         JFrame frame =
             new JFrame(
                 "Zombie Survival Simulation"
             );
 
         Main simulation =
-            new Main();
+            new Main(settings);
 
         frame.setLayout(
             new BorderLayout()
