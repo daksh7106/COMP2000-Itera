@@ -5,6 +5,14 @@ import java.awt.Graphics;
 
 public class Weapon extends Resource {
 
+    @Override
+    protected long getRespawnDelay() { return 10_000; }
+
+    @Override
+    public Weapon inventoryCopy() {
+        return new Weapon(quantity, damage, durability);
+    }
+
     private int damage;
     private int durability;
 
@@ -41,7 +49,7 @@ public class Weapon extends Resource {
      */
     public boolean fire(Character target) {
 
-        if (target == null || !canFire()) {
+        if (target == null || !target.isAlive() || !canFire()) {
 
             return false;
         }
