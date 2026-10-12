@@ -5,6 +5,7 @@ import itera.model.Character;
 import itera.model.human.*;
 import itera.model.zombie.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class World {
 
@@ -68,15 +69,8 @@ public class World {
 
     public boolean isCleared() {
 
-        for (Character character : characters) {
-
-            if (character instanceof Zombie && character.isAlive()) {
-
-                return false;
-            }
-        }
-
-        return true;
+        return characters.stream()
+            .noneMatch(character -> character instanceof Zombie && character.isAlive());
     }
 
     public ArrayList<Character> getCharacters() {
@@ -86,31 +80,17 @@ public class World {
 
     public ArrayList<Human> getHumans() {
 
-        ArrayList<Human> humans = new ArrayList<>();
-
-        for (Character character : characters) {
-
-            if (character instanceof Human human) {
-
-                humans.add(human);
-            }
-        }
-
-        return humans;
+        return characters.stream()
+            .filter(Human.class::isInstance)
+            .map(Human.class::cast)
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 
     public ArrayList<Zombie> getZombies() {
 
-        ArrayList<Zombie> zombies = new ArrayList<>();
-
-        for (Character character : characters) {
-
-            if (character instanceof Zombie zombie) {
-
-                zombies.add(zombie);
-            }
-        }
-
-        return zombies;
+        return characters.stream()
+            .filter(Zombie.class::isInstance)
+            .map(Zombie.class::cast)
+            .collect(Collectors.toCollection(ArrayList::new));
     }
 }
