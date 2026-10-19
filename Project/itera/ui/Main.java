@@ -151,12 +151,7 @@ public class Main extends JPanel {
                 + (i % zombieColumns) * 70;
             int y = WORLD_HEIGHT / 2 - (zombieRows - 1) * 35
                 + (i / zombieColumns) * 70;
-            Zombie zombie = switch (i % 4) {
-                case 1 -> new Runner(x, y);
-                case 2 -> new Stalker(x, y);
-                case 3 -> new Bloater(x, y);
-                default -> new Zombie(x, y);
-            };
+            Zombie zombie = ZombieSpawns.atType(i % 4, x, y);
             world.addCharacter(zombie);
         }
 
@@ -548,43 +543,7 @@ public class Main extends JPanel {
                 : convertedHumans
         ) {
 
-            int zombieType =
-                random.nextInt(4);
-
-            Zombie newZombie;
-
-            if (zombieType == 0) {
-
-                newZombie =
-                    new Zombie(
-                        human.getX(),
-                        human.getY()
-                    );
-
-            } else if (zombieType == 1) {
-
-                newZombie =
-                    new Runner(
-                        human.getX(),
-                        human.getY()
-                    );
-
-            } else if (zombieType == 2) {
-
-                newZombie =
-                    new Stalker(
-                        human.getX(),
-                        human.getY()
-                    );
-
-            } else {
-
-                newZombie =
-                    new Bloater(
-                        human.getX(),
-                        human.getY()
-                    );
-            }
+            Zombie newZombie = ZombieSpawns.random(random, human.getX(), human.getY());
 
             world.addCharacter(
                 newZombie

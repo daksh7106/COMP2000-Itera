@@ -12,7 +12,7 @@ public class ZombieWave {
 
     private ArrayList<Vector2D> spawnPoints = new ArrayList<>();
 
-    private Random random = new Random();
+    private final java.util.function.BiFunction<Integer, Integer, Zombie> spawnZombie;
 
     public ZombieWave(int count) {
 
@@ -21,9 +21,21 @@ public class ZombieWave {
 
     public ZombieWave(int count, boolean bossWave) {
 
-        this.count = count;
+        this(count, bossWave, defaultSpawner());
+    }
 
+    /** Supply creation behaviour for experiments without rewriting wave timing. */
+    public ZombieWave(int count, boolean bossWave,
+            java.util.function.BiFunction<Integer, Integer, Zombie> spawnZombie) {
+        if (count < 0) throw new IllegalArgumentException("Wave count cannot be negative");
+        this.count = count;
         this.bossWave = bossWave;
+        this.spawnZombie = Objects.requireNonNull(spawnZombie, "Zombie spawner is required");
+    }
+
+    private static java.util.function.BiFunction<Integer, Integer, Zombie> defaultSpawner() {
+        Random random = new Random();
+        return (x, y) -> ZombieSpawns.random(random, x, y);
     }
 
     public void addSpawnPoint(Vector2D point) {
@@ -62,38 +74,8 @@ public class ZombieWave {
 
             Vector2D point = spawnPoints.get(i % spawnPoints.size());
 
-            int zombieType = random.nextInt(4);
-
-            Zombie zombie;
-
-            if (zombieType == 0) {
-
-                zombie = new Zombie(
-                    (int) point.getX(),
-                    (int) point.getY()
-                );
-
-            } else if (zombieType == 1) {
-
-                zombie = new Runner(
-                    (int) point.getX(),
-                    (int) point.getY()
-                );
-
-            } else if (zombieType == 2) {
-
-                zombie = new Stalker(
-                    (int) point.getX(),
-                    (int) point.getY()
-                );
-
-            } else {
-
-                zombie = new Bloater(
-                    (int) point.getX(),
-                    (int) point.getY()
-                );
-            }
+            Zombie zombie = Objects.requireNonNull(spawnZombie.apply(
+                (int) point.getX(), (int) point.getY()), "Spawner returned no zombie");
 
             world.addCharacter(zombie);
         }
