@@ -79,6 +79,10 @@ public class World {
         wave.trigger(this);
     }
 
+    public PopulationSnapshot populationSnapshot() {
+        return new PopulationSnapshot(findCharacters(Human.class, Human::isAlive));
+    }
+
     public boolean isCleared() {
 
         return characters.stream()
