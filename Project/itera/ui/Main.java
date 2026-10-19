@@ -35,6 +35,16 @@ public class Main extends JPanel {
 
     private Timer timer;
     private boolean paused;
+    private final JLabel populationSummary = new JLabel(" ", SwingConstants.CENTER);
+
+    private void refreshPopulationSummary() {
+        String summary = world.populationSnapshot().getRoles().entrySet().stream()
+            .map(entry -> String.format(Locale.ROOT, "%s: %d alive, %d wounded, %.0f%% health",
+                entry.getKey(), entry.getValue().count(), entry.getValue().wounded(),
+                entry.getValue().averageHealth()))
+            .collect(java.util.stream.Collectors.joining("   |   "));
+        populationSummary.setText(summary.isEmpty() ? "No humans remaining" : summary);
+    }
 
     /*
      * Zombie wave settings.
@@ -585,6 +595,7 @@ public class Main extends JPanel {
          * Remove dead characters.
          */
         world.update();
+        refreshPopulationSummary();
 
         /*
          * SIMULATION END CONDITION
@@ -728,7 +739,9 @@ public class Main extends JPanel {
         });
         buttons.add(new JLabel("Medic priority:"));
         buttons.add(treatment);
+        refreshPopulationSummary();
         controls.add(legend, BorderLayout.NORTH);
+        controls.add(populationSummary, BorderLayout.CENTER);
         controls.add(buttons, BorderLayout.SOUTH);
         return controls;
     }
