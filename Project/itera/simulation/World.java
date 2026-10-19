@@ -8,6 +8,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class World {
+    private itera.model.human.treatment.TreatmentStrategy treatmentStrategy =
+        new itera.model.human.treatment.SoldiersFirstStrategy();
+
+    /** Apply policy to current medics and retain it for future reinforcements. */
+    public void setTreatmentStrategy(itera.model.human.treatment.TreatmentStrategy strategy) {
+        treatmentStrategy = Objects.requireNonNull(strategy, "Treatment strategy is required");
+        getHumans().stream().filter(Medic.class::isInstance).map(Medic.class::cast)
+            .forEach(medic -> medic.setTreatmentStrategy(strategy));
+    }
+
 
     // All in-world timers advance with movement, independent of wall-clock time.
     private long simulationTime = System.currentTimeMillis();
@@ -33,6 +43,7 @@ public class World {
     public void addCharacter(Character character) {
 
         character.setTimeSource(this::getTime);
+        if (character instanceof Medic medic) medic.setTreatmentStrategy(treatmentStrategy);
         characters.add(character);
     }
 

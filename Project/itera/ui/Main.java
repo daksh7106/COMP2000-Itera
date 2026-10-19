@@ -717,6 +717,17 @@ public class Main extends JPanel {
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttons.add(fastForward);
         buttons.add(pauseButton);
+        JComboBox<String> treatment = new JComboBox<>(new String[] {
+            "Soldiers first", "Most injured first"
+        });
+        treatment.setToolTipText("Choose who medics help first; critical self-healing still takes priority.");
+        treatment.addActionListener(event -> {
+            world.setTreatmentStrategy(treatment.getSelectedIndex() == 0
+                ? new itera.model.human.treatment.SoldiersFirstStrategy()
+                : new itera.model.human.treatment.MostInjuredStrategy());
+        });
+        buttons.add(new JLabel("Medic priority:"));
+        buttons.add(treatment);
         controls.add(legend, BorderLayout.NORTH);
         controls.add(buttons, BorderLayout.SOUTH);
         return controls;
