@@ -7,6 +7,17 @@ import java.awt.*;
 import java.util.*;
 
 public class Medic extends Human {
+    private itera.model.human.treatment.TreatmentStrategy treatmentStrategy =
+        new itera.model.human.treatment.SoldiersFirstStrategy();
+
+    public void setTreatmentStrategy(itera.model.human.treatment.TreatmentStrategy strategy) {
+        treatmentStrategy = Objects.requireNonNull(strategy, "Treatment strategy is required");
+    }
+
+    public itera.model.human.treatment.TreatmentStrategy getTreatmentStrategy() {
+        return treatmentStrategy;
+    }
+
     private long lastHealTime;
     private long healingUntil;
 
@@ -45,21 +56,16 @@ public class Medic extends Human {
         if (patient != null) heal(patient);
     }
 
+    /** Select only living, wounded patients outside shelter; never treat self here. */
+    public Optional<Human> selectPatient(java.util.List<Human> candidates) {
+        return candidates.stream()
+            .filter(human -> human != this && human.isAlive())
+            .filter(human -> human.getHealth() < 100 && !human.isSheltered())
+            .min(treatmentStrategy.priorityFor(this));
+    }
+
     private Human findPatient() {
-        Human best = null;
-        double bestDistance = Double.MAX_VALUE;
-        for (Human human : companions) {
-            if (human == this || !human.isAlive() || human.getHealth() >= 100 || human.isSheltered()) continue;
-            double distance = position.distanceTo(human.getPosition());
-            boolean soldier = human instanceof Soldier;
-            boolean bestSoldier = best instanceof Soldier;
-            if (best == null || soldier && !bestSoldier
-                    || soldier == bestSoldier && distance < bestDistance) {
-                best = human;
-                bestDistance = distance;
-            }
-        }
-        return best;
+        return selectPatient(companions).orElse(null);
     }
 
     @Override
