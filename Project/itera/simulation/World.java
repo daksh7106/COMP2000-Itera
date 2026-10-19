@@ -6,6 +6,7 @@ import itera.model.human.*;
 import itera.model.zombie.*;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 public class World {
     private itera.model.human.treatment.TreatmentStrategy treatmentStrategy =
@@ -89,19 +90,23 @@ public class World {
         return characters;
     }
 
-    public ArrayList<Human> getHumans() {
-
+    /** Return a fresh list selected by type and caller-supplied behaviour. */
+    public <T extends Character> ArrayList<T> findCharacters(
+            Class<T> type, Predicate<? super T> condition) {
+        Objects.requireNonNull(type, "Character type is required");
+        Objects.requireNonNull(condition, "Filter is required");
         return characters.stream()
-            .filter(Human.class::isInstance)
-            .map(Human.class::cast)
+            .filter(type::isInstance)
+            .map(type::cast)
+            .filter(condition)
             .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public ArrayList<Zombie> getZombies() {
+    public ArrayList<Human> getHumans() {
+        return findCharacters(Human.class, human -> true);
+    }
 
-        return characters.stream()
-            .filter(Zombie.class::isInstance)
-            .map(Zombie.class::cast)
-            .collect(Collectors.toCollection(ArrayList::new));
+    public ArrayList<Zombie> getZombies() {
+        return findCharacters(Zombie.class, zombie -> true);
     }
 }
