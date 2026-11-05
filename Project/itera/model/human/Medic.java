@@ -5,7 +5,9 @@ import itera.model.Character;
 import itera.model.zombie.*;
 import itera.simulation.EmergencySupplyDrop;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.*;
+import java.util.List;
 
 public class Medic extends Human {
     private itera.model.human.treatment.TreatmentStrategy treatmentStrategy =
@@ -21,6 +23,8 @@ public class Medic extends Human {
 
     private long lastHealTime;
     private long healingUntil;
+    private int movementWidth;
+    private int movementHeight;
 
     // The world supplies a current snapshot each simulation tick.
     private java.util.List<EmergencySupplyDrop> emergencySupplyDrops = java.util.List.of();
@@ -58,6 +62,8 @@ public class Medic extends Human {
 
     @Override
     public void update(int width, int height, ArrayList<Zombie> zombies, SafePoint safePoint) {
+        movementWidth = width;
+        movementHeight = height;
         // Stabilize at critical health before resuming treatment of soldiers.
         if (health <= 20) heal(this);
         super.update(width, height, zombies, safePoint);
@@ -81,16 +87,10 @@ public class Medic extends Human {
     protected boolean seekResources() {
         // Once equipped, leave any building before heading to a patient.
         if (getMedKits() > 0) {
-            for (Building building : buildings) {
-                if (building.overlaps(getX(), getY(), size)) {
-                    moveTowards(building.destination(this, null));
-                    return true;
-                }
-            }
-            return false;
+            return leaveBuilding();
         }
 
-        // Prioritise a reachable emergency drop when this medic has no kits.
+        // Prioritise a nearby active emergency drop when this medic has no kits.
         EmergencySupplyDrop nearestDrop = null;
         double nearestDistance = Double.MAX_VALUE;
         for (EmergencySupplyDrop drop : emergencySupplyDrops) {
@@ -105,7 +105,9 @@ public class Medic extends Human {
             }
         }
         if (nearestDrop != null) {
-            moveTowards(new Vector2D(nearestDrop.getX(), nearestDrop.getY()));
+            if (!leaveBuilding()) {
+                moveTowardsOutdoorTarget(new Vector2D(nearestDrop.getX(), nearestDrop.getY()));
+            }
             return true;
         }
 
@@ -126,6 +128,16 @@ public class Medic extends Human {
         return false;
     }
 
+    private boolean leaveBuilding() {
+        for (Building building : buildings) {
+            if (building.overlaps(position.getX(), position.getY(), size)) {
+                moveTowards(building.destination(this, null));
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     protected boolean pursueTarget(ArrayList<Zombie> zombies) {
         if (getMedKits() == 0) return false;
@@ -136,7 +148,61 @@ public class Medic extends Human {
             dx = 0;
             dy = 0;
         } else {
-            moveTowards(patient.getPosition());
+            moveTowardsOutdoorTarget(patient.getPosition());
+        }
+        return true;
+    }
+
+    /** Steer around a building via one or two corners when a straight path is blocked. */
+    private void moveTowardsOutdoorTarget(Vector2D destination) {
+        // Movement coordinates are the top-left of the medic, so expand the
+        // obstacle to account for the medic's full footprint. A tiny inset
+        // treats exact edge contact as clear, like Building.overlaps().
+        double inset = 0.001;
+        List<Rectangle2D> obstacles = new ArrayList<>(buildings.size());
+        for (Building building : buildings) {
+            obstacles.add(new Rectangle2D.Double(building.getX() - size + inset,
+                building.getY() - size + inset, building.getWidth() + size - 2 * inset,
+                building.getHeight() + size - 2 * inset));
+        }
+        if (clearPath(position, destination, obstacles)) {
+            moveTowards(destination);
+            return;
+        }
+
+        List<Vector2D> corners = new ArrayList<>();
+        for (Rectangle2D obstacle : obstacles) {
+            for (double x : new double[] {obstacle.getMinX() - 1, obstacle.getMaxX() + 1}) {
+                for (double y : new double[] {obstacle.getMinY() - 1, obstacle.getMaxY() + 1}) {
+                    if (x >= 0 && x <= movementWidth - size && y >= 0 && y <= movementHeight - size) {
+                        corners.add(new Vector2D(x, y));
+                    }
+                }
+            }
+        }
+
+        Vector2D waypoint = destination;
+        double bestDistance = Double.POSITIVE_INFINITY;
+        for (Vector2D entry : corners) {
+            double firstLeg = position.distanceTo(entry);
+            if (firstLeg <= inset || !clearPath(position, entry, obstacles)) continue;
+            for (Vector2D exit : corners) {
+                double distance = firstLeg + entry.distanceTo(exit) + exit.distanceTo(destination);
+                if (distance < bestDistance && clearPath(entry, exit, obstacles)
+                        && clearPath(exit, destination, obstacles)) {
+                    bestDistance = distance;
+                    waypoint = entry;
+                }
+            }
+        }
+        moveTowards(waypoint);
+    }
+
+    private static boolean clearPath(Vector2D from, Vector2D to, List<Rectangle2D> obstacles) {
+        for (Rectangle2D obstacle : obstacles) {
+            if (obstacle.intersectsLine(from.getX(), from.getY(), to.getX(), to.getY())) {
+                return false;
+            }
         }
         return true;
     }
